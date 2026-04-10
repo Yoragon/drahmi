@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # L'application Laravel + React
+  drahmi_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: drahmi_app
+    restart: unless-stopped
+    ports:
+      # Modifiez "8000" par le port de votre choix sur le VPS (ex: "8080:8080")
+      # S'il y a un conflit avec WhiteCoat, changez pour "8001:8080"
+      - "8000:8080"
+    environment:
+      # Force la lecture du fichier .env
+      - APP_KEY=${APP_KEY:-base64:E4wraK8gQWkwO2ucD0ca4y5BNuvn0zU5ZK/HITQEOBE=}
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://votre-domaine-ou-ip.com
+      - DB_CONNECTION=mysql
+      - DB_HOST=drahmi_db
+      - DB_PORT=3306
+      - DB_DATABASE=drahmi_prod
+      - DB_USERNAME=drahmi_user
+      - DB_PASSWORD=VerySecurePassword123!
+    depends_on:
+      drahmi_db:
+        condition: service_healthy
+
+  # La Base de données dédiée (isolée de WhiteCoat)
+  drahmi_db:
+    image: mysql:8.0
+    container_name: drahmi_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: drahmi_prod
+      MYSQL_USER: drahmi_user
+      MYSQL_PASSWORD: VerySecurePassword123!
+      MYSQL_ROOT_PASSWORD: SuperSecretRootPassword456!
+    volumes:
+      - drahmi_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pSuperSecretRootPassword456!"]
+      timeout: 20s
+      retries: 10
+
+volumes:
+  drahmi_mysql_data:
